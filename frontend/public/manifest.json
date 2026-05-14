@@ -1,0 +1,18 @@
+{
+  "name": "Sleeping Care",
+  "short_name": "SleepCare",
+  "description": "수면 환경·패턴 데이터를 자동으로 진단하고, AI가 개선 방향을 제시하는 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf7",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

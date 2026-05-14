@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #1e3a5f;
+    --color-primary-light: #2563c4;
+    --color-accent: #7eb8f7;
+    --color-bg: #fafaf7;
+    --color-bg-secondary: #f5f4ef;
+    --color-surface: #ffffff;
+    --color-border: #e8e7e3;
+    --color-text: #1a1a2e;
+    --color-text-muted: #6b7280;
+    --color-score-excellent: #22c55e;
+    --color-score-good: #84cc16;
+    --color-score-fair: #f59e0b;
+    --color-score-poor: #ef4444;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    font-family: 'DM Serif Display', Georgia, serif;
+  }
+}
+
+@layer components {
+  /* 카드 기본 스타일 */
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-cream-200 transition-all duration-300;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover -translate-y-0.5;
+  }
+
+  /* 페이지 진입 애니메이션 - stagger */
+  .animate-stagger > * {
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .animate-stagger > *:nth-child(2) { animation-delay: 0.10s; }
+  .animate-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+  .animate-stagger > *:nth-child(4) { animation-delay: 0.20s; }
+  .animate-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+  .animate-stagger > *:nth-child(6) { animation-delay: 0.30s; }
+  .animate-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+  .animate-stagger > *:nth-child(8) { animation-delay: 0.40s; }
+
+  /* 페이지 타이틀 */
+  .page-title {
+    @apply font-display text-3xl text-indigo-900 mb-1;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-gray-500 font-body;
+  }
+
+  /* 섹션 라벨 */
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-indigo-800 opacity-70;
+  }
+
+  /* 배지 */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-live {
+    @apply badge bg-green-100 text-green-700;
+  }
+
+  .badge-offline {
+    @apply badge bg-gray-100 text-gray-500;
+  }
+
+  /* 버튼 */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-900 text-white
+           rounded-xl font-medium text-sm transition-all duration-200
+           hover:bg-indigo-800 hover:shadow-md active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-cream-100 text-indigo-900
+           border border-cream-200 rounded-xl font-medium text-sm transition-all duration-200
+           hover:bg-cream-200 active:scale-95;
+  }
+
+  /* 수면 점수 컬러 유틸리티 */
+  .score-color-excellent { color: var(--color-score-excellent); }
+  .score-color-good      { color: var(--color-score-good); }
+  .score-color-fair      { color: var(--color-score-fair); }
+  .score-color-poor      { color: var(--color-score-poor); }
+
+  /* 네비게이션 링크 */
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium
+           text-gray-500 transition-all duration-200 hover:bg-cream-100 hover:text-indigo-900;
+  }
+
+  .nav-link.active {
+    @apply bg-indigo-900 text-white shadow-sm;
+  }
+}
+
+@layer utilities {
+  /* 도트 배경 패턴 */
+  .bg-dots {
+    background-image: radial-gradient(circle, #c7d7ee 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* 그라데이션 메시 배경 */
+  .bg-mesh {
+    background: linear-gradient(135deg, #f5f4ef 0%, #eef4fd 50%, #f5f4ef 100%);
+  }
+
+  /* 스크롤바 커스텀 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #c7d7ee;
+    border-radius: 2px;
+  }
+}
+
+/* 페이지 진입 keyframe */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 게이지 stroke 애니메이션 */
+@keyframes scoreFill {
+  from {
+    stroke-dashoffset: 339.3;
+  }
+  to {
+    stroke-dashoffset: var(--dash-offset, 0);
+  }
+}
+
+/* 소프트 펄스 (실시간 연결 표시) */
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s ease-in-out infinite;
+}
