@@ -12,8 +12,8 @@ class SensorDataIn(BaseModel):
     arduino_time: Optional[datetime] = None
     temperature: Optional[float] = Field(None, ge=-40, le=80)
     humidity: Optional[float] = Field(None, ge=0, le=100)
-    light: Optional[int] = Field(None, ge=0, le=1023)
-    sound: Optional[int] = Field(None, ge=0, le=1023)
+    light: Optional[float] = Field(None, ge=0, le=10000)  # lux 단위 (processor.py 변환 후)
+    sound: Optional[float] = Field(None, ge=0, le=200)    # dB 단위 (processor.py 변환 후)
     motion: bool = False
 
 
@@ -27,8 +27,8 @@ class MockSensorIn(BaseModel):
     """수동 테스트 데이터 생성용"""
     temperature: float = Field(20.0, ge=-40, le=80)
     humidity: float = Field(50.0, ge=0, le=100)
-    light: int = Field(50, ge=0, le=1023)
-    sound: int = Field(200, ge=0, le=1023)
+    light: float = Field(1.0, ge=0, le=10000)   # lux 단위 (1.0 lux = 매우 어두운 환경)
+    sound: float = Field(35.0, ge=0, le=200)    # dB 단위 (35 dB = 조용한 환경)
     motion: bool = False
 
 

@@ -12,7 +12,8 @@ import paho.mqtt.client as mqtt
 
 from core.config import settings
 from core.database import get_pool
-from services.sleep_score import calc_total_score
+from services.sleep_session import finalize_sleep_session
+from routers.sensors import broadcast_sensor
 
 logger = logging.getLogger(__name__)
 
@@ -88,103 +89,16 @@ async def _handle_sleep_start(timestamp: datetime | None):
 
 
 async def _handle_sleep_end(timestamp: datetime | None):
-    """
-    수면 종료 이벤트
-    - 진행 중인 세션(end_time IS NULL) 찾아 종료
-    - 세션 구간 센서 평균 집계
-    - 점수 산출 후 DB 업데이트
-    """
-    pool = await get_pool()
+    """수면 종료 이벤트 → 세션 집계/점수 계산을 서비스에 위임"""
     ts = timestamp or datetime.now(timezone.utc)
-
+    pool = await get_pool()
     async with pool.acquire() as conn:
-        # 가장 최근 미종료 세션 조회
-        session = await conn.fetchrow(
-            "SELECT id, start_time FROM sleep_sessions WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1"
-        )
-        if not session:
-            logger.warning("종료할 수면 세션 없음")
-            return
-
-        session_id = session["id"]
-        start_time = session["start_time"]
-        duration_min = int((ts - start_time).total_seconds() / 60)
-
-        # 세션 구간 센서 평균 집계
-        agg = await conn.fetchrow(
-            """
-            SELECT
-                AVG(temperature)    AS avg_temperature,
-                AVG(humidity)       AS avg_humidity,
-                AVG(light)          AS avg_light,
-                AVG(sound)          AS avg_sound,
-                COUNT(*) FILTER (WHERE motion = TRUE) AS motion_count
-            FROM sensor_data
-            WHERE time BETWEEN $1 AND $2
-            """,
-            start_time, ts,
-        )
-
-        avg_temp   = float(agg["avg_temperature"]) if agg["avg_temperature"] else None
-        avg_hum    = float(agg["avg_humidity"])    if agg["avg_humidity"]    else None
-        avg_light  = float(agg["avg_light"])       if agg["avg_light"]       else None
-        avg_sound  = float(agg["avg_sound"])       if agg["avg_sound"]       else None
-        motion_cnt = int(agg["motion_count"])      if agg["motion_count"]    else 0
-
-        # 규칙성: 직전 세션과 취침 시각 비교
-        prev = await conn.fetchrow(
-            """
-            SELECT start_time FROM sleep_sessions
-            WHERE id != $1 AND end_time IS NOT NULL
-            ORDER BY start_time DESC LIMIT 1
-            """,
-            session_id,
-        )
-        regularity_diff = None
-        if prev:
-            prev_start = prev["start_time"]
-            # 같은 시간대 기준 분 단위 차이
-            regularity_diff = int(
-                abs(
-                    (start_time.hour * 60 + start_time.minute)
-                    - (prev_start.hour * 60 + prev_start.minute)
-                )
-            )
-
-        # 점수 계산
-        env_score, pattern_score, total_score = calc_total_score(
-            avg_temp, avg_hum, avg_light, avg_sound,
-            duration_min, regularity_diff, motion_cnt,
-        )
-
-        # 세션 업데이트
-        await conn.execute(
-            """
-            UPDATE sleep_sessions SET
-                end_time            = $1,
-                duration_min        = $2,
-                avg_temperature     = $3,
-                avg_humidity        = $4,
-                avg_light           = $5,
-                avg_sound           = $6,
-                motion_count        = $7,
-                regularity_diff_min = $8,
-                env_score           = $9,
-                pattern_score       = $10,
-                total_score         = $11
-            WHERE id = $12
-            """,
-            ts, duration_min,
-            avg_temp, avg_hum, avg_light, avg_sound,
-            motion_cnt, regularity_diff,
-            env_score, pattern_score, total_score,
-            session_id,
-        )
-
-    logger.info(
-        f"수면 세션 종료: id={session_id}, "
-        f"duration={duration_min}min, total={total_score}점"
-    )
+        result = await finalize_sleep_session(conn, ts)
+    if result:
+        session_id, total_score = result
+        logger.info(f"수면 세션 종료: id={session_id}, total={total_score}점")
+    else:
+        logger.warning("종료할 수면 세션 없음")
 
 
 async def _handle_sleep_resume(timestamp: datetime | None):
@@ -198,6 +112,9 @@ async def _handle_sleep_resume(timestamp: datetime | None):
             """
             UPDATE sleep_sessions
             SET end_time = NULL, duration_min = NULL,
+                avg_temperature = NULL, avg_humidity = NULL,
+                avg_light = NULL, avg_sound = NULL,
+                motion_count = NULL, regularity_diff_min = NULL,
                 env_score = NULL, pattern_score = NULL, total_score = NULL
             WHERE id = (
                 SELECT id FROM sleep_sessions
@@ -244,13 +161,16 @@ async def _dispatch(topic: str, payload):
 
         if sensor_key == "time":
             # arduino_time 수신 시 버퍼 flush (한 세트 완성)
-            _sensor_buffer["arduino_time"] = payload
+            try:
+                _sensor_buffer["arduino_time"] = datetime.fromisoformat(str(payload))
+            except (ValueError, TypeError):
+                _sensor_buffer["arduino_time"] = None
             await _flush_sensor_buffer()
         else:
             if sensor_key == "motion":
                 _sensor_buffer[sensor_key] = bool(payload)
             elif sensor_key in ("light", "sound"):
-                _sensor_buffer[sensor_key] = int(payload) if payload is not None else None
+                _sensor_buffer[sensor_key] = float(payload) if payload is not None else None
             else:
                 _sensor_buffer[sensor_key] = float(payload) if payload is not None else None
 
@@ -269,24 +189,41 @@ async def _dispatch(topic: str, payload):
 
 
 async def _flush_sensor_buffer():
-    """버퍼에 모인 센서 데이터를 DB에 저장 후 초기화"""
+    """버퍼에 모인 센서 데이터를 DB에 저장 후 WebSocket 브로드캐스트"""
     data = dict(_sensor_buffer)
     _sensor_buffer.clear()
     try:
         await _save_sensor_data(data)
     except Exception as e:
         logger.error(f"센서 데이터 저장 실패: {e}")
+        return
+
+    try:
+        arduino_time = data.get("arduino_time")
+        await broadcast_sensor({
+            "time":         datetime.now(timezone.utc).isoformat(),
+            "arduino_time": arduino_time.isoformat() if isinstance(arduino_time, datetime) else arduino_time,
+            "temperature":  data.get("temperature"),
+            "humidity":     data.get("humidity"),
+            "light":        data.get("light"),
+            "sound":        data.get("sound"),
+            "motion":       data.get("motion"),
+        })
+    except Exception as e:
+        logger.error(f"WebSocket 브로드캐스트 실패: {e}")
 
 
 def _parse_event_time(payload) -> datetime | None:
-    """이벤트 페이로드에서 timestamp 파싱"""
-    if isinstance(payload, dict):
-        ts_str = payload.get("timestamp")
-        if ts_str:
-            try:
+    """이벤트 페이로드에서 timestamp 파싱 (문자열 또는 dict 모두 처리)"""
+    try:
+        if isinstance(payload, str):
+            return datetime.fromisoformat(payload)
+        if isinstance(payload, dict):
+            ts_str = payload.get("timestamp")
+            if ts_str:
                 return datetime.fromisoformat(ts_str)
-            except ValueError:
-                pass
+    except (ValueError, TypeError):
+        pass
     return None
 
 

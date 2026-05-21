@@ -19,10 +19,10 @@ def _build_prompt(session: dict) -> str:
         f"- 수면 시간: {dur_h}시간 {dur_m}분",
         f"- 취침 시각 편차 (전날 대비): {session.get('regularity_diff_min', '알 수 없음')}분",
         f"- 뒤척임 횟수: {session.get('motion_count', 0)}회",
-        f"- 평균 온도: {session.get('avg_temperature', '알 수 없음')}°C  (권장: 18~22°C)",
+        f"- 평균 온도: {session.get('avg_temperature', '알 수 없음')}°C  (권장: 16~20°C)",
         f"- 평균 습도: {session.get('avg_humidity', '알 수 없음')}%  (권장: 40~60%)",
-        f"- 평균 조도: {session.get('avg_light', '알 수 없음')}  (100 이하 권장)",
-        f"- 평균 소음: {session.get('avg_sound', '알 수 없음')}  (300 이하 권장)",
+        f"- 평균 조도: {session.get('avg_light', '알 수 없음')} lux  (5 lux 이하 권장)",
+        f"- 평균 소음: {session.get('avg_sound', '알 수 없음')} dB  (30 dB 이하 권장)",
         f"- 환경 점수: {session.get('env_score', '—')}점 / 40점",
         f"- 패턴 점수: {session.get('pattern_score', '—')}점 / 60점",
         f"- 종합 점수: {session.get('total_score', '—')}점 / 100점",
@@ -40,11 +40,11 @@ async def generate_coaching(session: dict) -> dict:
     Claude API 호출 → 코칭 텍스트 생성
     Returns: {"good_points": ..., "bad_points": ..., "weekly_goal": ...}
     """
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
     prompt = _build_prompt(session)
 
-    message = client.messages.create(
+    message = await client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1000,
         system=(

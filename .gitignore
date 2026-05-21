@@ -12,3 +12,4 @@ dist/
 # 기타
 *.log
 .DS_Store
+TASKS.md
