@@ -103,6 +103,22 @@ class CoachingOut(BaseModel):
     created_at: datetime
 
 
+class RangeCoachingGenerateIn(BaseModel):
+    """범위 기반 코칭 생성 요청"""
+    range: str  # day | week | month
+
+
+class RangeCoachingOut(BaseModel):
+    """범위 기반 코칭 결과 응답"""
+    id: int
+    range: str
+    good_points: Optional[str]
+    bad_points: Optional[str]
+    weekly_goal: Optional[str]
+    created_at: datetime
+    session_count: int = 0  # 분석에 사용된 세션 수
+
+
 # ==============================================
 # 헬스체크
 # ==============================================

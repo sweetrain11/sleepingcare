@@ -62,6 +62,7 @@ const LIBRARIES = [
       { name: 'TailwindCSS 3', desc: '유틸리티 퍼스트 CSS 프레임워크. 커스텀 디자인 토큰으로 일관된 스타일 적용' },
       { name: 'React Router 6', desc: '클라이언트 사이드 라우팅. Outlet 기반 중첩 레이아웃 구조' },
       { name: 'Recharts 2', desc: 'React 기반 차트 라이브러리. AreaChart로 수면 점수 추이 시각화' },
+      { name: 'vite-plugin-pwa', desc: 'Vite PWA 플러그인. 빌드 시 Service Worker 자동 생성 및 오프라인 캐싱 지원' },
     ],
   },
   {
@@ -92,10 +93,10 @@ const SCORE_CRITERIA = [
     category: '환경 점수 (40점)',
     color: '#06b6d4',
     items: [
-      { name: '온도 (10점)', rule: '18~22°C 만점, 1°C 벗어날 때마다 2점 감점' },
-      { name: '습도 (10점)', rule: '40~60% 만점, 5% 벗어날 때마다 2점 감점' },
-      { name: '조도 (10점)', rule: '100 이하 만점, 초과 시 선형 감점' },
-      { name: '소음 (10점)', rule: '300 이하 만점, 초과 시 선형 감점' },
+      { name: '온도 (10점)', rule: '15~19°C 만점 / 13~21°C → 6점 / 21~23°C → 3점 / 그 외 0점' },
+      { name: '습도 (10점)', rule: '40~60% 만점 / 35~65% → 6점 / 30~70% → 3점 / 그 외 0점' },
+      { name: '조도 (10점)', rule: '5 lux 이하 만점 / ~10 → 8점 / ~30 → 5점 / ~100 → 2점 / 초과 0점' },
+      { name: '소음 (10점)', rule: '30 dB 미만 만점 / ~40 → 7점 / ~55 → 4점 / ~65 → 1점 / 초과 0점' },
     ],
   },
   {
@@ -111,13 +112,17 @@ const SCORE_CRITERIA = [
 
 // API 엔드포인트
 const ENDPOINTS = [
-  { method: 'GET',  path: '/health',                        desc: '서버 상태 확인' },
-  { method: 'POST', path: '/api/sensors/data',              desc: '라즈베리파이 센서 데이터 수신' },
-  { method: 'POST', path: '/api/sensors/mock',              desc: '수동 테스트 데이터 생성' },
-  { method: 'GET',  path: '/api/sleep/score/{session_id}',  desc: '수면 세션 점수 조회' },
-  { method: 'GET',  path: '/api/sleep/history?range=week|month', desc: '수면 이력 조회' },
-  { method: 'POST', path: '/api/coaching/generate',         desc: 'AI 코칭 생성' },
-  { method: 'WS',   path: '/ws/realtime',                   desc: '실시간 센서 데이터 스트림' },
+  { method: 'GET',  path: '/health',                                desc: '서버 상태 확인' },
+  { method: 'POST', path: '/api/sensors/data',                      desc: '라즈베리파이 센서 데이터 수신' },
+  { method: 'POST', path: '/api/sensors/mock',                      desc: '수동 테스트 데이터 생성' },
+  { method: 'GET',  path: '/api/sleep/status',                      desc: '현재 수면 상태 조회' },
+  { method: 'POST', path: '/api/sleep/start',                       desc: '수면 수동 시작' },
+  { method: 'POST', path: '/api/sleep/end',                         desc: '수면 수동 종료' },
+  { method: 'GET',  path: '/api/sleep/score/{session_id}',          desc: '수면 세션 점수 조회' },
+  { method: 'GET',  path: '/api/sleep/history?range=day|week|month', desc: '수면 이력 조회' },
+  { method: 'GET',  path: '/api/coaching/range?range=day|week|month', desc: '저장된 범위 코칭 조회' },
+  { method: 'POST', path: '/api/coaching/range/generate',           desc: 'AI 범위 코칭 생성' },
+  { method: 'WS',   path: '/ws/realtime',                           desc: '실시간 센서·수면 상태 스트림' },
 ]
 
 const METHOD_COLORS = {
@@ -251,7 +256,6 @@ export default function Help() {
           <div>
             <p className="font-display text-2xl text-indigo-900">v0.0.1</p>
             <p className="text-sm text-gray-500 mt-1">AIoT응용및실습 텀 프로젝트</p>
-            <p className="text-xs text-gray-400 mt-0.5">국립군산대학교 소프트웨어학과 · 2201318 김단비</p>
           </div>
           <div className="text-right">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100">

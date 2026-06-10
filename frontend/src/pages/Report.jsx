@@ -49,7 +49,7 @@ function DayDetail({ session }) {
   const color = scoreColor(session.total_score)
 
   const envItems = [
-    { label: '온도', value: session.avg_temperature != null ? `${session.avg_temperature.toFixed(1)}°C` : '—', sub: '적정 16~20°C' },
+    { label: '온도', value: session.avg_temperature != null ? `${session.avg_temperature.toFixed(1)}°C` : '—', sub: '적정 15~19°C' },
     { label: '습도', value: session.avg_humidity != null ? `${session.avg_humidity.toFixed(0)}%` : '—', sub: '적정 40~60%' },
     { label: '조도', value: session.avg_light != null ? `${session.avg_light.toFixed(1)} lux` : '—', sub: '5 lux 이하 최적' },
     { label: '소음', value: session.avg_sound != null ? `${session.avg_sound.toFixed(1)} dB` : '—', sub: '30 dB 이하 최적' },
@@ -167,9 +167,11 @@ function SleepCalendar({ sessions }) {
   const scoreMap = {}
   if (sessions) {
     sessions.forEach((s) => {
-      const d = sleepNightDate(s.start_time)   // 자정 이후 취침 → 전날 날짜로
+      const d = sleepNightDate(s.start_time)
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      scoreMap[key] = s.total_score
+      if (!scoreMap[key] || (s.total_score ?? 0) > scoreMap[key]) {
+        scoreMap[key] = s.total_score
+      }
     })
   }
 
@@ -232,10 +234,12 @@ export default function Report() {
   const [range, setRange] = useState('day')
   const [sessions, setSessions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedSession, setSelectedSession] = useState(null)
 
   useEffect(() => {
     async function fetchHistory() {
       setIsLoading(true)
+      setSelectedSession(null)
       try {
         const res = await fetch(`/api/sleep/history?range=${range}`)
         if (!res.ok) throw new Error()
@@ -310,7 +314,7 @@ export default function Report() {
         </div>
       ) : range === 'day' ? (
         /* ── 1일 상세 뷰 ── */
-        <DayDetail session={sessions[0] ?? null} />
+        <DayDetail session={selectedSession ?? sessions[0] ?? null} />
       ) : (
         /* ── 7일 / 30일 뷰 ── */
         <>
@@ -359,7 +363,7 @@ export default function Report() {
                     <div
                       key={s.id}
                       className="flex items-center justify-between p-3 rounded-xl bg-cream-50 border border-cream-200 cursor-pointer hover:bg-cream-100 transition-colors"
-                      onClick={() => setRange('day')}
+                      onClick={() => { setSelectedSession(s); setRange('day') }}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />

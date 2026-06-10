@@ -36,7 +36,7 @@ function CoachingSection({ icon, title, content, accentColor, bgColor }) {
   )
 }
 
-export default function CoachingCard({ coaching, sessionDate, totalScore }) {
+export default function CoachingCard({ coaching, sessionDate, totalScore, rangeLabel }) {
   const formattedDate = sessionDate
     ? new Date(sessionDate).toLocaleDateString('ko-KR', {
         month: 'long', day: 'numeric', weekday: 'short',
@@ -52,7 +52,7 @@ export default function CoachingCard({ coaching, sessionDate, totalScore }) {
             <svg className="w-4 h-4 text-indigo-800 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-xs text-gray-400">{formattedDate}</p>
+            <p className="text-xs text-gray-400">{rangeLabel ?? formattedDate}</p>
           </div>
           <h3 className="font-display text-xl text-indigo-900">AI 수면 코칭</h3>
         </div>

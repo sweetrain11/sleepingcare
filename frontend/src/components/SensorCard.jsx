@@ -10,8 +10,8 @@ const SENSOR_CONFIG = {
     color: '#f97316',
     bgColor: '#fff7ed',
     borderColor: '#fed7aa',
-    good: (v) => v >= 16 && v <= 20,
-    hint: '적정 16~20°C',
+    good: (v) => v >= 15 && v <= 19,
+    hint: '적정 15~19°C',
   },
   humidity: {
     color: '#06b6d4',

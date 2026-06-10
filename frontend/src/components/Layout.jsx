@@ -78,10 +78,6 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="px-6 py-4 border-t border-cream-200">
-          <p className="text-xs text-gray-400 font-body">v0.0.1 · AIoT 텀 프로젝트</p>
-          <p className="text-xs text-gray-400 mt-0.5">2201318 김단비</p>
-        </div>
       </aside>
 
       {/* 모바일 상단 헤더 */}

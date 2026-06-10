@@ -62,6 +62,23 @@ CREATE TABLE coaching_results (
 );
 
 -- ==============================================
+-- 4. range_coaching_results
+-- 범위(day/week/month) 기반 코칭 결과 저장
+-- ==============================================
+CREATE TABLE IF NOT EXISTS range_coaching_results (
+    id              SERIAL          PRIMARY KEY,
+    range           VARCHAR(10)     NOT NULL,                  -- day | week | month
+    good_points     TEXT,
+    bad_points      TEXT,
+    weekly_goal     TEXT,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- 범위별 최신 코칭 조회 최적화
+CREATE INDEX IF NOT EXISTS idx_range_coaching_range_created
+    ON range_coaching_results(range, created_at DESC);
+
+-- ==============================================
 -- 인덱스
 -- ==============================================
 -- 수면 세션 조회 최적화

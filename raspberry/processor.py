@@ -245,16 +245,17 @@ class Processor:
 
         # 단위 변환 (이동평균 적용 후 변환)
         light_lux = self._raw_to_lux(light_raw)   # 원시값 → lux
-        sound_db  = self._raw_to_db(sound_raw)    # 원시값 → dB
+        # ⚠️ 소음 센서 마이크 불량 — None 고정 (점수 계산 시 기본 5점 처리)
+        sound_db  = None
 
         # 수면 이벤트 감지 (조도 임계값 비교는 원시값 기준 유지)
-        event = self._detect_sleep_event(light_raw, sound_db)
+        event = self._detect_sleep_event(light_raw, sound_db or 0.0)
 
         return {
             "temperature":  temperature,
             "humidity":     humidity,
             "light":        light_lux,    # lux 단위로 FastAPI 전송
-            "sound":        sound_db,     # dB 단위로 FastAPI 전송
+            "sound":        sound_db,     # None → FastAPI에서 기본 점수 처리
             "motion":       motion,
             "arduino_time": arduino_time,
             "event":        event,

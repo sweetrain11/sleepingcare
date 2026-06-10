@@ -1,214 +1,177 @@
 import { useState, useEffect } from 'react'
 import CoachingCard from '../components/CoachingCard'
 
-/**
- * Coaching.jsx
- * - 최근 수면 세션 목록 조회
- * - 세션 선택 후 AI 코칭 생성 요청
- * - 생성된 코칭 카드 목록 표시
- */
+const TABS = [
+  { value: 'day',   label: '1일',  desc: '어젯밤 수면 기반' },
+  { value: 'week',  label: '7일',  desc: '최근 7일 평균 기반' },
+  { value: 'month', label: '30일', desc: '최근 30일 평균 기반' },
+]
+
 export default function Coaching() {
-  const [sessions, setSessions] = useState([])
-  const [coachingList, setCoachingList] = useState([])
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true)
-  const [generatingId, setGeneratingId] = useState(null) // 생성 중인 세션 ID
+  const [range, setRange] = useState('week')
+  const [coaching, setCoaching] = useState(null)   // 현재 범위의 저장된 코칭
+  const [isLoading, setIsLoading] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState(null)
 
-  // 수면 세션 목록 불러오기
+  // 범위 변경 시 저장된 코칭 조회
   useEffect(() => {
-    async function fetchSessions() {
+    async function fetchCoaching() {
+      setIsLoading(true)
+      setError(null)
       try {
-        const res = await fetch('/api/sleep/history?range=month')
-        if (!res.ok) throw new Error()
-        const data = await res.json()
-        setSessions(data?.sessions || [])
-      } catch {
-        setSessions([])
-      } finally {
-        setIsLoadingSessions(false)
-      }
-    }
-    fetchSessions()
-  }, [])
-
-  // 기존 코칭 결과 불러오기 (세션 목록 기반으로 각 세션의 코칭 조회)
-  useEffect(() => {
-    if (!sessions.length) return
-    async function fetchCoachings() {
-      const results = []
-      for (const session of sessions.slice(0, 5)) {
-        try {
-          const res = await fetch(`/api/sleep/score/${session.session_id}`)
-          if (!res.ok) continue
+        const res = await fetch(`/api/coaching/range?range=${range}`)
+        if (res.ok) {
           const data = await res.json()
-          if (data?.coaching) {
-            results.push({ session, coaching: data.coaching })
-          }
-        } catch { /* 무시 */ }
+          setCoaching(data)
+        } else {
+          setCoaching(null)
+        }
+      } catch {
+        setCoaching(null)
+      } finally {
+        setIsLoading(false)
       }
-      setCoachingList(results)
     }
-    fetchCoachings()
-  }, [sessions])
+    fetchCoaching()
+  }, [range])
 
-  // AI 코칭 생성 요청
-  async function generateCoaching(session) {
-    setGeneratingId(session.session_id)
+  async function handleGenerate() {
+    setIsGenerating(true)
     setError(null)
     try {
-      const res = await fetch('/api/coaching/generate', {
+      const res = await fetch('/api/coaching/range/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: session.session_id }),
+        body: JSON.stringify({ range }),
       })
-      if (!res.ok) throw new Error('코칭 생성에 실패했어요')
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || '코칭 생성에 실패했어요')
+      }
       const data = await res.json()
-      setCoachingList((prev) => {
-        // 이미 있으면 교체, 없으면 앞에 추가
-        const exists = prev.findIndex((c) => c.session.session_id === session.session_id)
-        const newItem = { session, coaching: data }
-        if (exists >= 0) {
-          const updated = [...prev]
-          updated[exists] = newItem
-          return updated
-        }
-        return [newItem, ...prev]
-      })
+      setCoaching(data)
     } catch (e) {
-      setError(e.message || '코칭 생성 중 오류가 발생했어요')
+      setError(e.message)
     } finally {
-      setGeneratingId(null)
+      setIsGenerating(false)
     }
   }
 
-  // 코칭이 있는 세션 ID 집합
-  const coachedIds = new Set(coachingList.map((c) => c.session.session_id))
+  const currentTab = TABS.find((t) => t.value === range)
 
   return (
     <div className="space-y-8 animate-stagger">
       {/* 헤더 */}
-      <div>
-        <h1 className="page-title">AI 코칭</h1>
-        <p className="page-subtitle">Claude AI가 수면 데이터를 분석하고 개선 방향을 제시해요</p>
-      </div>
-
-      {/* 세션 선택 영역 */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="section-label">코칭 생성</p>
-          <span className="hidden sm:inline text-xs text-gray-400">수면 세션을 선택해 AI 코칭을 받아보세요</span>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="page-title">AI 코칭</h1>
+          <p className="page-subtitle">Claude AI가 수면 데이터를 분석하고 개선 방향을 제시해요</p>
         </div>
-
-        {isLoadingSessions ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 bg-cream-100 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-400">수면 세션이 없어요</p>
-            <p className="text-xs text-gray-400 mt-1">수면 데이터가 쌓이면 코칭을 받을 수 있어요</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {sessions.slice(0, 7).map((s) => {
-              const hasCouching = coachedIds.has(s.session_id)
-              const isGenerating = generatingId === s.session_id
-              const dur = s.duration_min || 0
-
-              return (
-                <div
-                  key={s.session_id}
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-cream-50 border border-cream-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: hasCouching ? '#eff6ff' : '#f9fafb' }}
-                    >
-                      {hasCouching ? (
-                        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {new Date(s.start_time).toLocaleDateString('ko-KR', {
-                          month: 'long', day: 'numeric', weekday: 'short',
-                        })}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {Math.floor(dur / 60)}h {dur % 60}m · 종합 {s.total_score}점
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => generateCoaching(s)}
-                    disabled={isGenerating}
-                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex-shrink-0 ${
-                      isGenerating
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : hasCouching
-                        ? 'bg-cream-100 text-indigo-700 hover:bg-indigo-50 border border-indigo-100'
-                        : 'bg-indigo-900 text-white hover:bg-indigo-800'
-                    }`}
-                  >
-                    {isGenerating ? (
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        생성 중…
-                      </span>
-                    ) : hasCouching ? '재생성' : 'AI 코칭 받기'}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-      </div>
-
-      {/* 코칭 카드 목록 */}
-      {coachingList.length > 0 && (
-        <div className="space-y-4">
-          <p className="section-label">코칭 결과</p>
-          {coachingList.map(({ session, coaching }) => (
-            <CoachingCard
-              key={session.session_id}
-              coaching={coaching}
-              sessionDate={session.start_time}
-              totalScore={session.total_score}
-            />
+        {/* 기간 탭 */}
+        <div className="flex gap-1 bg-cream-100 rounded-xl p-1 border border-cream-200 self-start">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setRange(tab.value)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                range === tab.value
+                  ? 'bg-indigo-900 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-indigo-900'
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* 코칭 없을 때 빈 상태 */}
-      {!isLoadingSessions && coachingList.length === 0 && sessions.length > 0 && (
+      {/* 코칭 영역 */}
+      {isLoading ? (
+        <div className="card p-12 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin" />
+        </div>
+      ) : coaching ? (
+        /* 저장된 코칭 결과 */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="section-label">코칭 결과</p>
+              <p className="text-xs text-gray-400 mt-0.5">{currentTab.desc}</p>
+            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex-shrink-0 ${
+                isGenerating
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-cream-100 text-indigo-700 hover:bg-indigo-50 border border-indigo-100'
+              }`}
+            >
+              {isGenerating ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  생성 중…
+                </span>
+              ) : '재생성'}
+            </button>
+          </div>
+
+          <CoachingCard
+            coaching={coaching}
+            sessionDate={coaching.created_at}
+            rangeLabel={currentTab.desc}
+          />
+        </div>
+      ) : (
+        /* 코칭 없음 — 생성 유도 */
         <div className="card p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           </div>
-          <p className="font-display text-lg text-indigo-900 mb-1">아직 코칭이 없어요</p>
-          <p className="text-sm text-gray-400">위에서 수면 세션을 선택해 AI 코칭을 받아보세요</p>
+          <p className="font-display text-lg text-indigo-900 mb-1">
+            {currentTab.desc} 코칭이 없어요
+          </p>
+          <p className="text-sm text-gray-400 mb-6">
+            {range === 'day' ? '어젯밤' : `최근 ${range === 'week' ? '7일' : '30일'}`} 수면 데이터를 분석해 코칭을 생성해요
+          </p>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              isGenerating
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-900 text-white hover:bg-indigo-800 shadow-sm hover:shadow-md active:scale-95'
+            }`}
+          >
+            {isGenerating ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                생성 중…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                AI 코칭 받기
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+          <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
     </div>
