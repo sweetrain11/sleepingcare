@@ -21,8 +21,8 @@ router = APIRouter()
 _ws_clients: set[WebSocket] = set()
 
 
-async def broadcast_sensor(data: dict):
-    """연결된 모든 WebSocket 클라이언트에 센서 데이터 브로드캐스트"""
+async def _broadcast(data: dict):
+    """연결된 모든 WebSocket 클라이언트에 메시지 브로드캐스트"""
     if not _ws_clients:
         return
     message = json.dumps(data, default=str)
@@ -33,6 +33,19 @@ async def broadcast_sensor(data: dict):
         except Exception:
             disconnected.add(ws)
     _ws_clients.difference_update(disconnected)
+
+
+async def broadcast_sensor(data: dict):
+    await _broadcast({"type": "sensor", **data})
+
+
+async def broadcast_sleep_state(is_sleeping: bool, session_id=None, start_time=None):
+    await _broadcast({
+        "type": "sleep_state",
+        "is_sleeping": is_sleeping,
+        "session_id": session_id,
+        "start_time": start_time.isoformat() if start_time else None,
+    })
 
 
 # --------------------------------------------------
@@ -137,9 +150,13 @@ async def websocket_realtime(websocket: WebSocket):
 
     try:
         while True:
-            # 클라이언트 메시지 대기 (ping 유지용)
-            await asyncio.wait_for(websocket.receive_text(), timeout=30)
-    except (WebSocketDisconnect, asyncio.TimeoutError):
+            try:
+                # 클라이언트 메시지 대기 (ping 수신용, 타임아웃은 연결 유지)
+                await asyncio.wait_for(websocket.receive_text(), timeout=30)
+            except asyncio.TimeoutError:
+                # 클라이언트가 ping 안 보내도 연결 유지
+                continue
+    except WebSocketDisconnect:
         pass
     finally:
         _ws_clients.discard(websocket)

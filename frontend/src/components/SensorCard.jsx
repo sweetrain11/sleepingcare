@@ -10,8 +10,8 @@ const SENSOR_CONFIG = {
     color: '#f97316',
     bgColor: '#fff7ed',
     borderColor: '#fed7aa',
-    good: (v) => v >= 18 && v <= 22,
-    hint: '적정 18~22°C',
+    good: (v) => v >= 16 && v <= 20,
+    hint: '적정 16~20°C',
   },
   humidity: {
     color: '#06b6d4',
@@ -24,15 +24,15 @@ const SENSOR_CONFIG = {
     color: '#eab308',
     bgColor: '#fefce8',
     borderColor: '#fef08a',
-    good: (v) => v <= 100,
-    hint: '100 이하 최적',
+    good: (v) => v <= 5,
+    hint: '5 lux 이하 최적',
   },
   sound: {
     color: '#8b5cf6',
     bgColor: '#f5f3ff',
     borderColor: '#ddd6fe',
-    good: (v) => v <= 300,
-    hint: '300 이하 최적',
+    good: (v) => v < 30,
+    hint: '30 dB 이하 최적',
   },
   motion: {
     color: '#ec4899',
@@ -46,7 +46,7 @@ const SENSOR_CONFIG = {
     bgColor: '#eff6ff',
     borderColor: '#bfdbfe',
     good: () => true,
-    hint: 'RTC 측정 시각',
+    hint: '마지막 수신 시각',
   },
 }
 

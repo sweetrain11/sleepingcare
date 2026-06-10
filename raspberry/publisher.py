@@ -65,8 +65,8 @@ class MQTTPublisher:
             if value is None:
                 continue
 
-            # bool, str은 그대로 / 숫자는 str 변환
-            payload = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+            # bool은 json.dumps로 true/false 직렬화, 나머지는 str 변환
+            payload = json.dumps(value) if isinstance(value, (dict, list, bool)) else str(value)
             self.client.publish(topic, payload, qos=1)
             logger.debug(f"publish: {topic} = {payload}")
 

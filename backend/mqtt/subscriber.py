@@ -94,11 +94,14 @@ async def _handle_sleep_end(timestamp: datetime | None):
     pool = await get_pool()
     async with pool.acquire() as conn:
         result = await finalize_sleep_session(conn, ts)
-    if result:
-        session_id, total_score = result
-        logger.info(f"수면 세션 종료: id={session_id}, total={total_score}점")
-    else:
+    if result is None:
         logger.warning("종료할 수면 세션 없음")
+    else:
+        session_id, payload = result
+        if payload == "too_short":
+            logger.info("수면 세션 삭제: 5분 미만 오기록")
+        else:
+            logger.info(f"수면 세션 종료: id={session_id}, total={payload}점")
 
 
 async def _handle_sleep_resume(timestamp: datetime | None):
@@ -168,7 +171,10 @@ async def _dispatch(topic: str, payload):
             await _flush_sensor_buffer()
         else:
             if sensor_key == "motion":
-                _sensor_buffer[sensor_key] = bool(payload)
+                if isinstance(payload, str):
+                    _sensor_buffer[sensor_key] = payload.lower() not in ("false", "0", "")
+                else:
+                    _sensor_buffer[sensor_key] = bool(payload)
             elif sensor_key in ("light", "sound"):
                 _sensor_buffer[sensor_key] = float(payload) if payload is not None else None
             else:

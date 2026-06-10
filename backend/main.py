@@ -62,10 +62,7 @@ app = FastAPI(
 # CORS 설정 (React 개발 서버 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=["*"],  # 개발용: 로컬 네트워크 폰 접속 허용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

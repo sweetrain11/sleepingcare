@@ -6,11 +6,16 @@ from datetime import datetime
 
 from services.sleep_score import calc_total_score
 
+MIN_SLEEP_MINUTES = 5   # 이 미만 세션은 오기록으로 간주 → 삭제
 
-async def finalize_sleep_session(conn, ts: datetime) -> tuple[int, int] | None:
+
+async def finalize_sleep_session(conn, ts: datetime) -> tuple[int, int] | tuple[None, str] | None:
     """
     수면 세션 종료 처리.
-    Returns: (session_id, total_score) 또는 미종료 세션이 없으면 None
+    Returns:
+        (session_id, total_score)  정상 종료
+        (None, "too_short")        5분 미만 → 세션 삭제
+        None                       활성 세션 없음
     """
     session = await conn.fetchrow(
         "SELECT id, start_time FROM sleep_sessions WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1"
@@ -21,6 +26,11 @@ async def finalize_sleep_session(conn, ts: datetime) -> tuple[int, int] | None:
     session_id = session["id"]
     start_time = session["start_time"]
     duration_min = int((ts - start_time).total_seconds() / 60)
+
+    # 5분 미만: 오기록으로 간주 → 세션 삭제
+    if duration_min < MIN_SLEEP_MINUTES:
+        await conn.execute("DELETE FROM sleep_sessions WHERE id = $1", session_id)
+        return None, "too_short"
 
     # 세션 구간 센서 평균 집계
     agg = await conn.fetchrow(

@@ -45,7 +45,7 @@ async def generate_coaching(session: dict) -> dict:
     prompt = _build_prompt(session)
 
     message = await client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-opus-4-5",
         max_tokens=1000,
         system=(
             "당신은 수면 전문 코치예요. "

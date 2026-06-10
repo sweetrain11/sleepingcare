@@ -1,10 +1,13 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 export function useWebSocket() {
-  const wsUrl = 'ws://localhost:5174/ws/realtime'
+  // 접속한 호스트 기준으로 WS URL 결정 (로컬/모바일 모두 대응)
+  const wsUrl = `ws://${window.location.hostname}:5174/ws/realtime`
+
   const [sensorData, setSensorData] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [sleepState, setSleepState] = useState(null) // { is_sleeping, session_id, start_time }
   const wsRef = useRef(null)
   const reconnectTimerRef = useRef(null)
   const reconnectCountRef = useRef(0)
@@ -25,8 +28,17 @@ export function useWebSocket() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          setSensorData(data)
-          setLastUpdated(new Date())
+          if (data.type === 'sleep_state') {
+            setSleepState({
+              is_sleeping: data.is_sleeping,
+              session_id: data.session_id,
+              start_time: data.start_time,
+            })
+          } else {
+            // type === 'sensor' 또는 기존 포맷
+            setSensorData(data)
+            setLastUpdated(new Date())
+          }
         } catch {}
       }
       ws.onclose = () => {
@@ -52,5 +64,5 @@ export function useWebSocket() {
     }
   }, [connect])
 
-  return { sensorData, isConnected, lastUpdated }
+  return { sensorData, isConnected, lastUpdated, sleepState }
 }

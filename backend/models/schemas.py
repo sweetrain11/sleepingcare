@@ -70,6 +70,20 @@ class SleepHistoryOut(BaseModel):
     sessions: list[SleepScoreOut]
 
 
+class SleepStatusOut(BaseModel):
+    """현재 수면 상태 응답"""
+    is_sleeping: bool
+    session_id: Optional[int] = None
+    start_time: Optional[datetime] = None
+
+
+class SleepControlOut(BaseModel):
+    """수면 수동 제어 응답"""
+    success: bool
+    message: str
+    session_id: Optional[int] = None
+
+
 # ==============================================
 # AI 코칭
 # ==============================================

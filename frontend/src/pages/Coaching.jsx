@@ -38,7 +38,7 @@ export default function Coaching() {
       const results = []
       for (const session of sessions.slice(0, 5)) {
         try {
-          const res = await fetch(`/api/sleep/score/${session.id}`)
+          const res = await fetch(`/api/sleep/score/${session.session_id}`)
           if (!res.ok) continue
           const data = await res.json()
           if (data?.coaching) {
@@ -53,19 +53,19 @@ export default function Coaching() {
 
   // AI 코칭 생성 요청
   async function generateCoaching(session) {
-    setGeneratingId(session.id)
+    setGeneratingId(session.session_id)
     setError(null)
     try {
       const res = await fetch('/api/coaching/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: session.id }),
+        body: JSON.stringify({ session_id: session.session_id }),
       })
       if (!res.ok) throw new Error('코칭 생성에 실패했어요')
       const data = await res.json()
       setCoachingList((prev) => {
         // 이미 있으면 교체, 없으면 앞에 추가
-        const exists = prev.findIndex((c) => c.session.id === session.id)
+        const exists = prev.findIndex((c) => c.session.session_id === session.session_id)
         const newItem = { session, coaching: data }
         if (exists >= 0) {
           const updated = [...prev]
@@ -82,7 +82,7 @@ export default function Coaching() {
   }
 
   // 코칭이 있는 세션 ID 집합
-  const coachedIds = new Set(coachingList.map((c) => c.session.id))
+  const coachedIds = new Set(coachingList.map((c) => c.session.session_id))
 
   return (
     <div className="space-y-8 animate-stagger">
@@ -96,7 +96,7 @@ export default function Coaching() {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="section-label">코칭 생성</p>
-          <span className="text-xs text-gray-400">수면 세션을 선택해 AI 코칭을 받아보세요</span>
+          <span className="hidden sm:inline text-xs text-gray-400">수면 세션을 선택해 AI 코칭을 받아보세요</span>
         </div>
 
         {isLoadingSessions ? (
@@ -113,13 +113,13 @@ export default function Coaching() {
         ) : (
           <div className="space-y-2">
             {sessions.slice(0, 7).map((s) => {
-              const hasCouching = coachedIds.has(s.id)
-              const isGenerating = generatingId === s.id
+              const hasCouching = coachedIds.has(s.session_id)
+              const isGenerating = generatingId === s.session_id
               const dur = s.duration_min || 0
 
               return (
                 <div
-                  key={s.id}
+                  key={s.session_id}
                   className="flex items-center justify-between p-3.5 rounded-xl bg-cream-50 border border-cream-200"
                 >
                   <div className="flex items-center gap-3">
@@ -152,7 +152,7 @@ export default function Coaching() {
                   <button
                     onClick={() => generateCoaching(s)}
                     disabled={isGenerating}
-                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex-shrink-0 ${
                       isGenerating
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : hasCouching
@@ -190,7 +190,7 @@ export default function Coaching() {
           <p className="section-label">코칭 결과</p>
           {coachingList.map(({ session, coaching }) => (
             <CoachingCard
-              key={session.id}
+              key={session.session_id}
               coaching={coaching}
               sessionDate={session.start_time}
               totalScore={session.total_score}

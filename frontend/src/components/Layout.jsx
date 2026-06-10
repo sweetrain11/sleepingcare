@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
-// 네비게이션 아이템 정의
 const NAV_ITEMS = [
   {
     to: '/dashboard',
@@ -43,12 +42,10 @@ const NAV_ITEMS = [
 export default function Layout() {
   return (
     <div className="flex min-h-screen bg-mesh">
-      {/* 사이드바 */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-cream-200 shadow-sm z-20 flex flex-col">
-        {/* 로고 영역 */}
+      {/* 사이드바 — 모바일에서 숨김 */}
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-60 bg-white border-r border-cream-200 shadow-sm z-20 flex-col">
         <div className="px-6 py-6 border-b border-cream-200">
           <div className="flex items-center gap-3">
-            {/* 달 아이콘 */}
             <div className="w-9 h-9 rounded-xl bg-indigo-900 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                 <path
@@ -67,16 +64,13 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* 네비게이션 */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
           <p className="section-label px-4 mb-3">메뉴</p>
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                `nav-link ${isActive ? 'active' : ''}`
-              }
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -84,21 +78,53 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* 하단 버전 정보 */}
         <div className="px-6 py-4 border-t border-cream-200">
           <p className="text-xs text-gray-400 font-body">v0.0.1 · AIoT 텀 프로젝트</p>
           <p className="text-xs text-gray-400 mt-0.5">2201318 김단비</p>
         </div>
       </aside>
 
-      {/* 메인 콘텐츠 영역 */}
-      <main className="flex-1 ml-60 min-h-screen">
-        {/* 배경 도트 패턴 (옅게) */}
-        <div className="fixed inset-0 ml-60 bg-dots opacity-30 pointer-events-none z-0" />
-        <div className="relative z-10 p-8">
+      {/* 모바일 상단 헤더 */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-20 bg-white border-b border-cream-200 px-4 py-3 flex items-center gap-3">
+        <div className="w-7 h-7 rounded-lg bg-indigo-900 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M17 9C13.134 9 10 12.134 10 16C10 19.866 13.134 23 17 23C18.105 23 19.148 22.726 20.062 22.244C18.474 23.372 16.52 24 14.4 24C9.203 24 5 19.797 5 14.6C5 9.403 9.203 5.2 14.4 5.2C16.026 5.2 17.554 5.62 18.878 6.356C17.706 7.068 17 8.452 17 9Z"
+              fill="white" opacity="0.9"
+            />
+            <circle cx="20" cy="7" r="1.2" fill="#7eb8f7" />
+            <circle cx="21.5" cy="10.5" r="0.8" fill="#7eb8f7" opacity="0.6" />
+          </svg>
+        </div>
+        <p className="font-display text-base text-indigo-900">Sleeping Care</p>
+      </header>
+
+      {/* 메인 콘텐츠 */}
+      <main className="flex-1 md:ml-60 min-h-screen">
+        <div className="fixed inset-0 md:ml-60 bg-dots opacity-30 pointer-events-none z-0" />
+        {/* 모바일: 상단 헤더(52px) + 하단 탭바(64px) 여백 */}
+        <div className="relative z-10 p-4 md:p-8 pt-16 md:pt-8 pb-24 md:pb-8">
           <Outlet />
         </div>
       </main>
+
+      {/* 하단 탭바 — 모바일 전용 */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-cream-200 flex">
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors duration-150 ${
+                isActive ? 'text-indigo-700' : 'text-gray-400'
+              }`
+            }
+          >
+            {item.icon}
+            <span className="text-[10px] font-medium">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }
