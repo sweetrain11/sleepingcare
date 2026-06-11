@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 from core.config import settings
 from core.database import get_pool
 from services.sleep_session import finalize_sleep_session
-from routers.sensors import broadcast_sensor
+from routers.sensors import broadcast_sensor, broadcast_sleep_state
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,7 @@ async def _handle_sleep_start(timestamp: datetime | None):
             "INSERT INTO sleep_sessions (start_time) VALUES ($1) RETURNING id",
             ts,
         )
+    await broadcast_sleep_state(is_sleeping=True, session_id=session_id, start_time=ts)
     logger.info(f"수면 세션 시작: id={session_id}, start_time={ts}")
 
 
@@ -99,8 +100,10 @@ async def _handle_sleep_end(timestamp: datetime | None):
     else:
         session_id, payload = result
         if payload == "too_short":
+            await broadcast_sleep_state(is_sleeping=False)
             logger.info("수면 세션 삭제: 5분 미만 오기록")
         else:
+            await broadcast_sleep_state(is_sleeping=False, session_id=session_id)
             logger.info(f"수면 세션 종료: id={session_id}, total={payload}점")
 
 

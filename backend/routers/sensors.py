@@ -138,7 +138,7 @@ async def create_mock_data(
 # --------------------------------------------------
 
 @router.websocket("/ws/realtime")
-async def websocket_realtime(websocket: WebSocket):
+async def websocket_realtime(websocket: WebSocket, conn: Connection = Depends(get_conn)):
     """
     WS /ws/realtime
     실시간 센서 데이터 스트림
@@ -147,6 +147,20 @@ async def websocket_realtime(websocket: WebSocket):
     await websocket.accept()
     _ws_clients.add(websocket)
     logger.info(f"WebSocket 연결: 현재 {len(_ws_clients)}명")
+
+    # 연결 즉시 현재 수면 상태 전송
+    try:
+        row = await conn.fetchrow(
+            "SELECT id, start_time FROM sleep_sessions WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1"
+        )
+        await websocket.send_text(json.dumps({
+            "type": "sleep_state",
+            "is_sleeping": row is not None,
+            "session_id": row["id"] if row else None,
+            "start_time": row["start_time"].isoformat() if row else None,
+        }, default=str))
+    except Exception:
+        pass
 
     try:
         while True:

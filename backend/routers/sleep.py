@@ -116,6 +116,7 @@ async def manual_sleep_end(conn: Connection = Depends(get_conn)):
         return SleepControlOut(success=False, message="종료할 수면 세션이 없어요")
     session_id, payload = result
     if payload == "too_short":
+        await broadcast_sleep_state(is_sleeping=False)
         return SleepControlOut(success=False, message="수면 시간이 너무 짧아요 (5분 미만은 기록되지 않아요)")
     await broadcast_sleep_state(is_sleeping=False, session_id=session_id)
     return SleepControlOut(success=True, message=f"수면 종료 (점수: {payload}점)", session_id=session_id)
