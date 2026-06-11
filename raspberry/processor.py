@@ -17,9 +17,9 @@ MOVING_AVG_N = 5
 SLEEP_LIGHT_THRESHOLD      = 250   # 수면 시작 조도 임계값 (원시값 0~1023, 주변 센서 불빛 고려)
 SLEEP_START_SECONDS        = 300   # 수면 시작 판단 유지 시간 (초, 5분)
 LIGHT_INTERRUPT_TOLERANCE  = 300   # 조도 상승 허용 시간 (초, 5분 이하 켜졌으면 타이머 유지)
-WAKE_SOUND_THRESHOLD       = 70    # 수면 종료 판단 소음 임계값 (dB, 알람 수준)
-WAKE_SOUND_COUNT           = 3     # 수면 종료 판단 감지 횟수
-WAKE_SOUND_WINDOW          = 10    # 수면 종료 판단 시간 윈도우 (초)
+WAKE_SOUND_THRESHOLD       = 80    # 알람 감지 소음 임계값 (dB)
+WAKE_ALARM_MIN_SEC         = 3     # 알람 최소 지속 시간 (초) — 이 이상 울려야 알람으로 인정
+WAKE_ALARM_MAX_SEC         = 10    # 알람 최대 지속 시간 (초) — 이 초과 시 스누즈/노이즈로 간주
 RESUME_WINDOW              = 300   # 수면 재개 판단 시간 윈도우 (초, 5분)
 
 # ---- 단위 변환 설정 ----
@@ -79,7 +79,7 @@ class Processor:
         self._is_sleeping        = False
         self._low_light_since    = None   # 조도 임계값 이하 유지 시작 시각
         self._light_on_since     = None   # 조도 임계값 초과 시작 시각 (인터럽션 추적)
-        self._sound_times        = deque()  # 소음 감지 시각 목록 (알람 감지용)
+        self._alarm_start_time   = None   # 알람 소음 시작 시각 (수면 종료 감지용)
         self._sleep_end_time     = None   # 수면 종료 시각 (재개 판단용)
 
     # =============================================
@@ -199,23 +199,28 @@ class Processor:
                 if self._light_on_since is None:
                     self._light_on_since = now  # 조도 상승 시각 기록
 
-        # ---- 수면 중인 경우: 수면 종료 감지 (알람 소음) ----
+        # ---- 수면 중인 경우: 수면 종료 감지 (알람 소음 종료) ----
         else:
             if sound_db >= WAKE_SOUND_THRESHOLD:
-                self._sound_times.append(now)
-
-            # 오래된 감지 기록 제거
-            while self._sound_times and now - self._sound_times[0] > WAKE_SOUND_WINDOW:
-                self._sound_times.popleft()
-
-            # 윈도우 내 N회 이상 감지 → 알람으로 판단
-            if len(self._sound_times) >= WAKE_SOUND_COUNT:
-                self._is_sleeping = False
-                self._sleep_end_time = now
-                self._sound_times.clear()
-                self._light_on_since = None
-                logger.info("수면 종료 감지 (알람 소음)")
-                return "sleep_end"
+                if self._alarm_start_time is None:
+                    self._alarm_start_time = now  # 알람 시작 시각 기록
+                elif now - self._alarm_start_time > WAKE_ALARM_MAX_SEC:
+                    # 10초 초과 지속 → 스누즈 또는 배경 소음으로 간주, 리셋
+                    self._alarm_start_time = None
+            else:
+                if self._alarm_start_time is not None:
+                    elapsed = now - self._alarm_start_time
+                    if elapsed >= WAKE_ALARM_MIN_SEC:
+                        # 5~10초 울리고 멈춤 → 알람 끄고 일어남
+                        self._is_sleeping = False
+                        self._sleep_end_time = now
+                        self._alarm_start_time = None
+                        self._light_on_since = None
+                        logger.info("수면 종료 감지 (알람 종료)")
+                        return "sleep_end"
+                    else:
+                        # 5초 미만 → 일시적 소음, 무시
+                        self._alarm_start_time = None
 
         return None
 

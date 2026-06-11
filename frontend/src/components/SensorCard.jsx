@@ -55,7 +55,7 @@ function SensorIcon({ type }) {
   const icons = {
     temperature: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z" />
       </svg>
     ),
     humidity: (
@@ -70,7 +70,7 @@ function SensorIcon({ type }) {
     ),
     sound: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0-12l-3.536 3.464A5 5 0 007 12m5-6l3.536 3.464A5 5 0 0117 12" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 3v18l-5-4H4a1 1 0 01-1-1V8a1 1 0 011-1h3l5-4z" />
       </svg>
     ),
     motion: (

@@ -56,6 +56,15 @@ export default function Dashboard() {
       const res = await fetch(`/api/sleep/${action}`, { method: 'POST' })
       const data = await res.json()
       setControlMsg({ ok: data.success, text: data.message })
+
+      // API 성공 시 즉시 상태 반영 (fetchStatus 응답 대기 없이)
+      if (data.success) {
+        if (action === 'start') {
+          setSleepStatus({ is_sleeping: true, session_id: data.session_id, start_time: new Date().toISOString() })
+        } else if (action === 'end') {
+          setSleepStatus({ is_sleeping: false })
+        }
+      }
       await fetchStatus()
 
       // 수면 종료 성공 시 세션 결과 조회

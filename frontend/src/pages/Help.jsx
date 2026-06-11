@@ -248,38 +248,6 @@ export default function Help() {
           ))}
         </div>
       </section>
-
-      {/* 버전 정보 */}
-      <section className="card p-6">
-        <p className="section-label mb-4">버전 정보</p>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-display text-2xl text-indigo-900">v0.0.1</p>
-            <p className="text-sm text-gray-500 mt-1">AIoT응용및실습 텀 프로젝트</p>
-          </div>
-          <div className="text-right">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100">
-              <span className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="text-xs text-indigo-700 font-medium">Stable</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">2026년 1학기</p>
-          </div>
-        </div>
-
-        {/* 변경 이력 */}
-        <div className="mt-5 pt-5 border-t border-cream-200">
-          <p className="text-xs font-semibold text-gray-500 mb-3">변경 이력</p>
-          <div className="space-y-2">
-            <div className="flex items-start gap-3">
-              <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded flex-shrink-0">v0.0.1</span>
-              <div>
-                <p className="text-xs font-medium text-gray-700">최초 릴리즈</p>
-                <p className="text-xs text-gray-400">대시보드 · 리포트 · AI 코칭 · 도움말 페이지 구현. WebSocket 실시간 센서 · PWA 적용</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import CoachingCard from '../components/CoachingCard'
 
 const TABS = [
-  { value: 'day',   label: '1일',  desc: '어젯밤 수면 기반' },
-  { value: 'week',  label: '7일',  desc: '최근 7일 평균 기반' },
-  { value: 'month', label: '30일', desc: '최근 30일 평균 기반' },
+  { value: 'day',   label: '1일',  desc: '어젯밤 단일 세션 분석' },
+  { value: 'week',  label: '7일',  desc: '최근 7일 추세 · 패턴 분석' },
+  { value: 'month', label: '30일', desc: '최근 30일 장기 습관 분석' },
 ]
 
 export default function Coaching() {
-  const [range, setRange] = useState('week')
+  const [range, setRange] = useState('day')
   const [coaching, setCoaching] = useState(null)   // 현재 범위의 저장된 코칭
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -124,6 +124,7 @@ export default function Coaching() {
             coaching={coaching}
             sessionDate={coaching.created_at}
             rangeLabel={currentTab.desc}
+            range={range}
           />
         </div>
       ) : (

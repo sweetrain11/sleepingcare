@@ -36,7 +36,8 @@ function CoachingSection({ icon, title, content, accentColor, bgColor }) {
   )
 }
 
-export default function CoachingCard({ coaching, sessionDate, totalScore, rangeLabel }) {
+export default function CoachingCard({ coaching, sessionDate, totalScore, rangeLabel, range }) {
+  const goalLabel = range === 'day' ? '오늘 밤 목표' : range === 'month' ? '이번 달 목표' : '이번 주 목표'
   const formattedDate = sessionDate
     ? new Date(sessionDate).toLocaleDateString('ko-KR', {
         month: 'long', day: 'numeric', weekday: 'short',
@@ -80,7 +81,7 @@ export default function CoachingCard({ coaching, sessionDate, totalScore, rangeL
         />
         <CoachingSection
           icon="🎯"
-          title="이번 주 목표"
+          title={goalLabel}
           content={coaching?.weekly_goal || '데이터를 불러오는 중...'}
           accentColor="#2563c4"
           bgColor="#eff6ff"
